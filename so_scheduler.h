@@ -98,4 +98,3 @@ DECL_PREFIX void *start_thread(void *arg);
 #endif
 
 #endif /* SO_SCHEDULER_H_ */
-
