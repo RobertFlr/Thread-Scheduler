@@ -15,7 +15,7 @@
 #define INIT_FAIL   (-1)
 #define INIT_SUCCESS    (0)
 
-#define NEW_STATE	(0)
+#define NEW_STATE (0)
 #define READY_STATE (1)
 #define RUNNING_STATE (2)
 #define WAITING_STATE (3)
@@ -40,7 +40,6 @@ typedef struct scheduler{
     unsigned int io;
     struct thread_manager *thread_m;
     struct thread* running_thread;
-    unsigned int running;
     sem_t sem_end;
 
 }scheduler_t;
@@ -52,7 +51,6 @@ typedef struct thread_manager{
     struct node *ready_list;
     unsigned int max_ready_prio;
     struct node *waiting_list;
-    struct node *terminated;
 
 }thread_manager_t;
 
@@ -355,7 +353,6 @@ int so_init(unsigned int quant, unsigned int io){
     S->thread_m->waiting_list = NULL;
     S->thread_m->ready_list = NULL;
     S->thread_m->max_ready_prio = 0;
-    S->running = 1;
 
     S->running_thread = NULL;
     S->quant = quant;
