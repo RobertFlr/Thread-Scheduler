@@ -4,7 +4,6 @@
 #include "list.h"
 #include "so_scheduler.h"
 
-
 #define FAIL_INIT_TID ((tid_t)0)
 
 #define LOCKED  (0)
