@@ -6,13 +6,13 @@
 
 #define FAIL_INIT_TID ((tid_t)0)
 
-#define LOCKED  (0)
+#define LOCKED (0)
 #define UNLOCKED (1)
 
 #define INVALID_WAIT (-1)
 
-#define INIT_FAIL   (-1)
-#define INIT_SUCCESS    (0)
+#define INIT_FAIL (-1)
+#define INIT_SUCCESS (0)
 
 #define NEW_STATE (0)
 #define READY_STATE (1)
