@@ -58,7 +58,7 @@ void insert_thread(thread_manager_t* thread_m, thread_t* thread) {
     unsigned int inserted = 0;
 
     /* insert in ready list */
-    if (thread->state == READY_STATE){
+    if (thread->state == READY_STATE) {
         if(thread->priority > thread_m->max_ready_prio) {
             thread_m->max_ready_prio = thread->priority;
         }
@@ -89,7 +89,7 @@ void insert_thread(thread_manager_t* thread_m, thread_t* thread) {
     }
 
     /* insert in waiting list */
-    if (thread->state == WAITING_STATE){
+    if (thread->state == WAITING_STATE) {
         
         list_t waiting_l = thread_m->waiting_list;
         if (waiting_l == NULL){
@@ -279,18 +279,14 @@ void schedule(){
 
 /* initializes params of thread struct */
 thread_t* newtherad_init(so_handler *handler, unsigned int priority) {
-
     thread_t *new_thread = malloc(sizeof(struct thread));
     if(new_thread == NULL)
         return NULL;
-    
     new_thread->handler = handler;
     new_thread->quant = S->quant;
     new_thread->priority = priority;
     new_thread->state = NEW_STATE;
-    
     sem_init(&(new_thread->sem), 0, LOCKED);
-
     return new_thread;
 }
 
