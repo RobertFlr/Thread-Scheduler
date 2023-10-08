@@ -20,44 +20,38 @@
 #define WAITING_STATE (3)
 #define TERMINATED_STATE (4)
 
-/* thread struct */
-typedef struct thread{
-
+/* thread structure */
+typedef struct thread {
     tid_t id;
     unsigned int quant;
     unsigned int priority;
     so_handler* handler;
     unsigned int state;
     sem_t sem;
+} thread_t;
 
-}thread_t;
-
-/* scheduler struct */
-typedef struct scheduler{
-
+/* scheduler structure */
+typedef struct scheduler {
     unsigned int quant;
     unsigned int io;
     struct thread_manager *thread_m;
     struct thread* running_thread;
     sem_t sem_end;
+} scheduler_t;
 
-}scheduler_t;
-
-/* helps manage and store threads */
-typedef struct thread_manager{
-
+/* manages and stores threads */
+typedef struct thread_manager {
     struct node *term_list;
     struct node *ready_list;
     unsigned int max_ready_prio;
     struct node *waiting_list;
+} thread_manager_t;
 
-}thread_manager_t;
-
-/* declare scheduler */
+/* create scheduler */
 struct scheduler *S = NULL;
 
-/* insert in manager based on state */
-void insert_thread(thread_manager_t* thread_m, thread_t* thread){
+/* add to manager based on state */
+void insert_thread(thread_manager_t* thread_m, thread_t* thread) {
     /* create thread's cell */
     node_t *new_cell = alloc_cell(thread);
     list_t previous = NULL;
@@ -65,34 +59,29 @@ void insert_thread(thread_manager_t* thread_m, thread_t* thread){
 
     /* insert in ready list */
     if (thread->state == READY_STATE){
-
-        if(thread->priority > thread_m->max_ready_prio)
+        if(thread->priority > thread_m->max_ready_prio) {
             thread_m->max_ready_prio = thread->priority;
-
+        }
         struct node* ready_l = thread_m->ready_list;
-
         if (ready_l == NULL){
             thread_m->ready_list = new_cell;
             return; 
         }
-
         for(list_t i = ready_l; i != NULL; previous = i, i = i->next){
-            
-            if( ((thread_t*)(i->data))->priority > thread->priority && previous != NULL ){
+            if( ((thread_t*)(i->data))->priority > thread->priority && previous != NULL ) {
                 previous->next = new_cell;
                 new_cell->next = i;
                 inserted = 1;
                 break;
             }
-            
-            if( ((thread_t*)(i->data))->priority > thread->priority && previous == NULL){
+            if( ((thread_t*)(i->data))->priority > thread->priority && previous == NULL) {
                 thread_m->ready_list = new_cell;
                 new_cell->next = i;
                 inserted = 1;
                 break;
             }
         }
-        if(!inserted){
+        if(!inserted) {
             previous->next = new_cell;
             new_cell->next = NULL;
         }
@@ -114,14 +103,12 @@ void insert_thread(thread_manager_t* thread_m, thread_t* thread){
     }
 
     /* insert in terminated list */
-    if (thread->state == TERMINATED_STATE){
-
+    if (thread->state == TERMINATED_STATE) {
         list_t term_l = thread_m->term_list;
         if(term_l == NULL){
             thread_m->term_list = new_cell;
             return;
         }
-
         for(list_t i = term_l; i != NULL; previous = i, i = i->next);
         previous->next = new_cell;
         return;
@@ -129,19 +116,16 @@ void insert_thread(thread_manager_t* thread_m, thread_t* thread){
 }
 
 /* removes thread from ready list */
-void remove_thread_ready(unsigned int state){
-
+void remove_thread_ready(unsigned int state) {
     list_t i, previous = NULL;
     list_t ready_l = S->thread_m->ready_list;
-    
-    /* search and remove thread */
-    for(i = ready_l; i != NULL; previous = i, i = i->next){
-        if(((thread_t*)(i->data))->state == state){
+    for(i = ready_l; i != NULL; previous = i, i = i->next) {
+        if(((thread_t*)(i->data))->state == state) {
             break;
         }
     }
     
-    if(previous == NULL){
+    if(previous == NULL) {
         S->thread_m->ready_list = S->thread_m->ready_list->next;
         ready_l->next = NULL;
         ready_l->data = NULL;
@@ -150,27 +134,23 @@ void remove_thread_ready(unsigned int state){
         return;
     }
     previous->next = i->next;
-
     /* free old cell */
     i->next = NULL;
     i->data = NULL;
     free(i);
-
     return;
 }
 
 /* inserts threads waiting on IO in the ready list */
-int wakeup_threads(unsigned int io){
-
+int wakeup_threads(unsigned int io) {
     list_t waiting_list = S->thread_m->waiting_list;
     unsigned int woke_count = 0;
-    if(waiting_list == NULL){
+    if(waiting_list == NULL) {
         return 0;
     }
-
     list_t i = waiting_list, previous = NULL;
-    while(i != NULL){
-        if(((thread_t*)(i->data))->quant == io){
+    while(i != NULL) {
+        if(((thread_t*)(i->data))->quant == io) {
             /* get thread redy */
             thread_t *woke_thread = (thread_t*)(i->data);
             woke_thread->quant = S->io;
@@ -179,7 +159,7 @@ int wakeup_threads(unsigned int io){
             insert_thread(S->thread_m, woke_thread);
             woke_count++;
             /* remove from waiting list */
-            if(previous == NULL){
+            if(previous == NULL) {
                 S->thread_m->waiting_list = S->thread_m->waiting_list->next;
                 i->next = NULL;
                 free(i);
@@ -190,7 +170,7 @@ int wakeup_threads(unsigned int io){
             i->next = NULL;
             free(i);
             i = previous->next;
-        }else{
+        } else {
             previous = i;
             i = i->next;
         }
@@ -199,68 +179,56 @@ int wakeup_threads(unsigned int io){
 }
 
 /* update max priority after remove */
-void remake_max_prio(){
-
-    if(S->thread_m->ready_list == NULL){
+void remake_max_prio() {
+    if(S->thread_m->ready_list == NULL) {
         S->thread_m->max_ready_prio = 0;
         return;
     }
-
     list_t i = S->thread_m->ready_list;
-    while(i != NULL){
+    while(i != NULL) {
         S->thread_m->max_ready_prio = ((thread_t*)(i->data))->priority;
         i = i ->next;
     }
 }
-
 /* gets highest priority thread from ready list */
-thread_t* get_next_thread(thread_manager_t* thread_m){
-    
+thread_t* get_next_thread(thread_manager_t* thread_m) {
     if(thread_m->ready_list == NULL){
         return NULL;
     }
-    
-    for(list_t i = thread_m->ready_list; i != NULL; i = i->next){
-        if(((thread_t*)(i->data))->priority == thread_m->max_ready_prio){
+    for(list_t i = thread_m->ready_list; i != NULL; i = i->next) {
+        if(((thread_t*)(i->data))->priority == thread_m->max_ready_prio) {
             return (thread_t*)(i->data);
         }
     }
     return NULL;
 }
-
 /* schedule function */
 void schedule(){    
-    
     thread_t* next_thread = get_next_thread(S->thread_m);
-    
     /* run first thread */
-    if(S->running_thread == NULL){        
+    if(S->running_thread == NULL) {        
         S->running_thread = next_thread;
         next_thread->state = RUNNING_STATE;
         remove_thread_ready(RUNNING_STATE);
         sem_post(&(S->running_thread->sem));
         return;
     }
-
     /* last thread alive */
-    if(next_thread == NULL){
-        
+    if(next_thread == NULL){ 
         /* all threads terminated, open so_end()'s semaphore */
-        if(S->running_thread->state == TERMINATED_STATE){
+        if(S->running_thread->state == TERMINATED_STATE) {
             insert_thread(S->thread_m, S->running_thread);
             sem_post(&(S->sem_end));
             return; 
-        }
-        
+        }  
         /* run it again */
-        if(S->running_thread->quant == 0){
+        if(S->running_thread->quant == 0) {
             S->running_thread->quant = S->quant;
         }
         return;
     }
-
     /* running thread blocked */
-    if(S->running_thread->state == WAITING_STATE){
+    if(S->running_thread->state == WAITING_STATE) {
 
         thread_t* waiting = S->running_thread;
         /* use quant as a temporary placeholder for the I/O */
@@ -279,10 +247,10 @@ void schedule(){
 
     /* running thread preempted */
     if(next_thread->priority > S->running_thread->priority || 
-        S->running_thread->quant == 0 || S->running_thread->state == TERMINATED_STATE ){
+        S->running_thread->quant == 0 || S->running_thread->state == TERMINATED_STATE ) {
     
         thread_t* preempted = S->running_thread;
-        if(preempted->state != TERMINATED_STATE){
+        if(preempted->state != TERMINATED_STATE) {
             preempted->state = READY_STATE;
         }
 
@@ -300,7 +268,7 @@ void schedule(){
         remake_max_prio();
 
         /* if preempted terminated, let it die */
-        if(preempted->state == TERMINATED_STATE){
+        if(preempted->state == TERMINATED_STATE) {
             sem_post(&(preempted->sem));
         }
         sem_post(&(S->running_thread->sem));
@@ -310,7 +278,7 @@ void schedule(){
 }
 
 /* initializes params of thread struct */
-thread_t* newtherad_init(so_handler *handler, unsigned int priority){
+thread_t* newtherad_init(so_handler *handler, unsigned int priority) {
 
     thread_t *new_thread = malloc(sizeof(struct thread));
     if(new_thread == NULL)
@@ -327,7 +295,7 @@ thread_t* newtherad_init(so_handler *handler, unsigned int priority){
 }
 
 /* initializes scheduler */
-int so_init(unsigned int quant, unsigned int io){
+int so_init(unsigned int quant, unsigned int io) {
 
     if(quant == 0 || io > SO_MAX_NUM_EVENTS)
         return INIT_FAIL; 
@@ -361,7 +329,7 @@ int so_init(unsigned int quant, unsigned int io){
 }
 
 /* creates new thread */
-tid_t so_fork(so_handler *handler, unsigned int priority){
+tid_t so_fork(so_handler *handler, unsigned int priority) {
 
     if (handler == 0 || priority > SO_MAX_PRIO)
         return INVALID_TID;
@@ -373,9 +341,9 @@ tid_t so_fork(so_handler *handler, unsigned int priority){
         return FAIL_INIT_TID;
 
     /* checks for first fork */
-    if(S->running_thread != NULL){
+    if(S->running_thread != NULL) {
         S->running_thread->quant--;
-    }else{
+    } else {
         sem_wait(&(S->sem_end));
     }
 
@@ -409,7 +377,7 @@ int so_wait(unsigned int io){
 }
 
 /* unblocks threads */
-int so_signal(unsigned int io){
+int so_signal(unsigned int io) {
 
     if(io >= S->io){
         return INVALID_WAIT;
@@ -425,7 +393,7 @@ int so_signal(unsigned int io){
 }
 
 /* does nothing */
-void so_exec(void){
+void so_exec(void) {
 
     S->running_thread->quant--;
 
@@ -445,11 +413,11 @@ void so_end(void){
 
     /* join all the threads and destroy the list*/
     if(S->thread_m->term_list != NULL){
-        for(list_t i = S->thread_m->term_list; i != NULL; i = i->next){
+        for(list_t i = S->thread_m->term_list; i != NULL; i = i->next) {
             thread_t *temp = (thread_t*)(i->data);
             pthread_join(temp->id, NULL);
         }
-        for(list_t i = S->thread_m->term_list; i != NULL;){
+        for(list_t i = S->thread_m->term_list; i != NULL;) {
             list_t aux = i->next;
             thread_t *temp = (thread_t*)(i->data);
             sem_destroy(&(temp->sem));
@@ -466,7 +434,7 @@ void so_end(void){
 }
 
 /* thread routine function */
-void *start_thread(void *arg){
+void *start_thread(void *arg) {
 
     thread_t *thread = (thread_t*)arg;
     
